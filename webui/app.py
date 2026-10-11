@@ -236,7 +236,13 @@ def main() -> None:
     except Exception as exc:  # noqa: BLE001
         print(f"[webui] auto-seg warmup failed: {exc}", flush=True)
 
-    demo.launch(server_name=args.server_name, server_port=args.server_port)
+    demo.launch(
+        server_name=args.server_name,
+        server_port=args.server_port,
+        # Results are written under GENIA_RESULTS (e.g. /data/results), outside
+        # the CWD, so Gradio must be told it may serve files from there.
+        allowed_paths=[str(outputs.RESULTS)],
+    )
 
 
 if __name__ == "__main__":
