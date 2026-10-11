@@ -19,6 +19,31 @@ MARKER="${WEIGHTS_DIR}/.genia_weights_ok"
 
 mkdir -p "$HF_HUB_CACHE" "$TORCH_HOME" "$U2NET_HOME" "$GENIA_RESULTS"
 
+# Trust BOTH the image's public roots and the cluster CA.
+#
+# Deployments may point SSL_CERT_FILE/REQUESTS_CA_BUNDLE/CURL_CA_BUNDLE at a
+# file holding only the cluster CA (e.g. /etc/ssl/certs/internal-ca.pem). That
+# drops the public roots, so TLS to public hosts fails — torch.hub.load(...,
+# source="github") for DINOv2 then dies with CERTIFICATE_VERIFY_FAILED. Build a
+# combined bundle (image roots + cluster CA) and point the CA vars at it, so
+# in-cluster (the HF mirror) and public endpoints both verify. No-op when the
+# cluster CA is not mounted (e.g. local docker-compose).
+CA_BUNDLE="${GENIA_CA_BUNDLE:-/opt/genia-bootstrap/ca-certificates.crt}"
+INTERNAL_CA="/etc/ssl/certs/internal-ca.pem"
+if [ -f "$INTERNAL_CA" ]; then
+    mkdir -p "$(dirname "$CA_BUNDLE")"
+    : > "$CA_BUNDLE"
+    SYSTEM_CA="/etc/ssl/certs/ca-certificates.crt"
+    [ -f "$SYSTEM_CA" ] && cat "$SYSTEM_CA" >> "$CA_BUNDLE" || true
+    cat "$INTERNAL_CA" >> "$CA_BUNDLE"
+    export SSL_CERT_FILE="$CA_BUNDLE"
+    export REQUESTS_CA_BUNDLE="$CA_BUNDLE"
+    export CURL_CA_BUNDLE="$CA_BUNDLE"
+    export PIP_CERT="$CA_BUNDLE"
+    export GIT_SSL_CAINFO="$CA_BUNDLE"
+    echo "[entrypoint] CA bundle: ${CA_BUNDLE} (public roots + cluster CA)"
+fi
+
 # huggingface_hub reads HF_TOKEN directly; mirror it for older clients too.
 if [ -n "${HF_TOKEN:-}" ]; then
     export HUGGING_FACE_HUB_TOKEN="$HF_TOKEN"

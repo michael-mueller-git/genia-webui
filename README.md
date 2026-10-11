@@ -76,6 +76,13 @@ docker run ... genia-webui:local shell
 
 Volumes: `/data/weights` (HF + torch hub caches) and `/data/results` (runs).
 
+If the deployment mounts a cluster CA at `/etc/ssl/certs/internal-ca.pem`
+(e.g. for an in-cluster HuggingFace mirror), the entrypoint builds a combined
+trust bundle = the image's public roots + that CA and points
+`SSL_CERT_FILE`/`REQUESTS_CA_BUNDLE`/`CURL_CA_BUNDLE` at it. Override the path
+with `GENIA_CA_BUNDLE`. This keeps TLS to public hosts working (torch.hub fetches
+DINOv2 from GitHub) while trusting the cluster CA.
+
 ## Build notes
 
 - Base image: `pytorch/pytorch:2.7.1-cuda12.8-cudnn9-devel` — exactly GenIA's
