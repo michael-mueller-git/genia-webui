@@ -226,6 +226,16 @@ def main() -> None:
 
     demo = build_ui()
     demo.queue(default_concurrency_limit=1, max_size=16)
+
+    # Load the auto-seg model up front. Weights are pre-cached by the entrypoint
+    # and it is loaded with local_files_only, so no hub fetch happens mid-run;
+    # a failure here must not stop the UI from starting.
+    try:
+        autoseg.warmup()
+        print("[webui] auto-seg model ready", flush=True)
+    except Exception as exc:  # noqa: BLE001
+        print(f"[webui] auto-seg warmup failed: {exc}", flush=True)
+
     demo.launch(server_name=args.server_name, server_port=args.server_port)
 
 

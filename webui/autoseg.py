@@ -19,13 +19,18 @@ def _get_model():
         from transformers import AutoModelForImageSegmentation
 
         model = AutoModelForImageSegmentation.from_pretrained(
-            "briaai/RMBG-1.4", trust_remote_code=True
+            "briaai/RMBG-1.4", trust_remote_code=True, local_files_only=True
         )
         model.eval()
         device = "cuda" if torch.cuda.is_available() else "cpu"
         model.to(device)
         _MODEL = model
     return _MODEL
+
+
+def warmup() -> None:
+    """Load the model now so the first run never fetches or initialises it."""
+    _get_model()
 
 
 def predict_mask(image: Image.Image) -> Image.Image:

@@ -63,9 +63,28 @@ ensure_weights() {
     fi
 }
 
+prefetch_segmentation() {
+    # The UI loads briaai/RMBG-1.4 with trust_remote_code, so it needs the repo's
+    # Python files too — which download_weights' allow_patterns skip. Cache the
+    # whole repo here so the UI can load it with local_files_only=True and never
+    # touch the hub mid-run.
+    cd "$GENIA_DIR"
+    python - <<'PY'
+from huggingface_hub import snapshot_download, try_to_load_from_cache
+
+REPO = "briaai/RMBG-1.4"
+if isinstance(try_to_load_from_cache(REPO, "briarmbg.py"), str):
+    print("[entrypoint] RMBG-1.4 (auto-seg) already cached")
+else:
+    snapshot_download(REPO, allow_patterns=["*.py", "*.json", "*.safetensors", "*.pt"])
+    print("[entrypoint] cached RMBG-1.4 (auto-seg, incl. remote code)")
+PY
+}
+
 case "${1:-webui}" in
     webui)
         ensure_weights
+        prefetch_segmentation || echo "[entrypoint] WARN: RMBG pre-fetch failed; auto-seg may fail at run time"
         exec python "${GENIA_DIR}/webui/app.py" \
             --server-name 0.0.0.0 --server-port "${WEBUI_PORT:-7860}"
         ;;
