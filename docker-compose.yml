@@ -1,0 +1,37 @@
+# GenIA Web UI, GPU-enabled. Requires the NVIDIA Container Toolkit.
+#
+#   HF_TOKEN=<hf_...> docker compose up --build
+#
+# Weights download into the genia-weights volume on first start; results land in
+# genia-results. Target GPU: CMP 170HX (GA100, sm_80) — arch is fixed at 8.0.
+services:
+  genia:
+    build:
+      context: .
+      args:
+        GENIA_TORCH_CUDA_ARCH_LIST: "8.0"
+        MAX_JOBS: "2"
+    image: genia-webui:local
+    ports:
+      - "7860:7860"
+    volumes:
+      - genia-weights:/data/weights
+      - genia-results:/data/results
+    environment:
+      - HF_TOKEN=${HF_TOKEN:-}
+      - HF_HUB_CACHE=/data/weights/huggingface/hub
+      - TORCH_HOME=/data/weights/torch
+      - GENIA_RESULTS=/data/results
+      - TORCH_CUDA_ARCH_LIST=8.0
+      - CUDA_VISIBLE_DEVICES=0
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+
+volumes:
+  genia-weights:
+  genia-results:

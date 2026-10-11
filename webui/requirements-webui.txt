@@ -1,0 +1,5 @@
+# Web UI deps. Kept minimal and installed after GenIA so it cannot disturb the
+# pinned torch/CUDA stack. Auto-segmentation reuses RMGB-1.4 (already fetched as
+# an ActionMesh weight) through the existing transformers dependency, so no
+# segmentation package is required here.
+gradio>=5.0,<6.0
