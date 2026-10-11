@@ -65,7 +65,10 @@ install_prebuilt() {  # $1=pkg dir, $2=version grep, $3=source fallback
 
 echo "=== CUDA extensions ==="
 # diso ships only an sdist; small CUDA source build pinned to the target arch.
-python -m pip install --no-build-isolation diso==0.1.4
+# Its setup.py only selects the CUDA extension when a GPU is visible; the Docker
+# build has no GPU, so torch.cuda.is_available() is False and it would otherwise
+# build a CPU-only extension that still includes <cuda_runtime.h>. Force it.
+FORCE_CUDA=1 python -m pip install --no-build-isolation diso==0.1.4
 
 install_prebuilt pytorch3d '0\.7\.9' \
     "git+https://github.com/facebookresearch/pytorch3d.git@v0.7.9"
