@@ -29,7 +29,7 @@ def _get_model():
 
 
 def predict_mask(image: Image.Image) -> Image.Image:
-    """Return an L-mode mask ({0,1}) flagged on the largest foreground region."""
+    """Return an L-mode mask (0/255) flagged on the largest foreground region."""
     import torch
     from torchvision import transforms
 
@@ -42,8 +42,10 @@ def predict_mask(image: Image.Image) -> Image.Image:
     ])
     inp = tf(image.convert("RGB")).unsqueeze(0).to(device)
     with torch.no_grad():
-        pred = model(inp)[-1].sigmoid().cpu()[0].squeeze()
+        # BriaRMBG.forward returns (sigmoid_maps, hidden_states); the maps are
+        # already sigmoid-activated, so take the finest side output directly.
+        pred = model(inp)[0][0].cpu()[0].squeeze()
     small = pred.unsqueeze(0).unsqueeze(0)
     resized = transforms.functional.resize(small, (image.height, image.width))[0, 0]
     arr = (resized.numpy() > 0.5).astype(np.uint8)
-    return Image.fromarray(arr, mode="L")
+    return Image.fromarray(arr * 255, mode="L")
