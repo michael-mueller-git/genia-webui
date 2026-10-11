@@ -31,6 +31,10 @@ def stream(cmd: list[str]) -> Iterator[str]:
     assert proc.stdout is not None
     try:
         for line in proc.stdout:
+            # Mirror to the container's stdout so the same stream the Gradio UI
+            # shows is also visible in `kubectl logs` / the log collector.
+            sys.stdout.write(line)
+            sys.stdout.flush()
             yield line
     finally:
         proc.stdout.close()
